@@ -1,4 +1,3 @@
 *.zip
 airflow-materials/
-__MACOSX/
 forex-pipeline/mnt/airflow/dags/__pycache__/
