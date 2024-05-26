@@ -1,7 +1,13 @@
 from airflow import DAG
 from airflow.providers.http.sensors.http import HttpSensor # type: ignore
 from airflow.sensors.filesystem import FileSensor  # type: ignore
+from airflow.operators.python import PythonOperator # type: ignore
+
 from datetime import datetime, timedelta
+
+import csv
+import requests
+import json
 
 default_args = {
     'owner': 'airflow',
@@ -11,6 +17,26 @@ default_args = {
     'retries': 1,
     'retry_delay': timedelta(minutes=5)
 }
+
+def download_rates():
+    BASE_URL = "https://gist.githubusercontent.com/marclamberti/f45f872dea4dfd3eaa015a4a1af4b39b/raw/"
+    ENDPOINTS = {
+        'USD': 'api_forex_exchange_usd.json',
+        'EUR': 'api_forex_exchange_eur.json'
+    }
+
+    with open('/opt/airflow/dags/files/forex_currencies.csv') as forex_currencies:
+        reader = csv.DictReader(forex_currencies, delimiter=';')
+        for idx, row in enumerate(reader):
+            base = row['base']
+            with_pairs = row['with_pairs'].split(' ')
+            indata = requests.get(f"{BASE_URL}{ENDPOINTS[base]}").json()
+            outdata = {'base': base, 'rates': {}, 'last_update': indata['date']}
+            for pair in with_pairs:
+                outdata['rates'][pair] = indata['rates'][pair]
+            with open('/opt/airflow/dags/files/forex_rates.json', 'a') as outfile:
+                json.dump(outdata, outfile)
+                outfile.write('\n')
 
 with DAG('forex_data_pipeline', start_date=datetime(2024, 5, 1), schedule_interval='@daily', default_args=default_args, catchup=False) as dag:
 
@@ -27,6 +53,13 @@ with DAG('forex_data_pipeline', start_date=datetime(2024, 5, 1), schedule_interv
         task_id = 'is_forex_currencies_file_available',
         fs_conn_id = 'forex_path',
         filepath = 'forex_currencies.csv',
+        poke_interval = 5,
+        timeout = 20
+    )
+
+    download_forex_rates = PythonOperator(
+        task_id = 'download_forex_rates',
+        python_callable = download_rates,
         poke_interval = 5,
         timeout = 20
     )
