@@ -3,6 +3,7 @@ from airflow.providers.http.sensors.http import HttpSensor # type: ignore
 from airflow.sensors.filesystem import FileSensor  # type: ignore
 from airflow.operators.python import PythonOperator # type: ignore
 from airflow.operators.bash import BashOperator # type: ignore
+from airflow.providers.apache.hive.operators.hive import HiveOperator # type: ignore
 
 from datetime import datetime, timedelta
 
@@ -68,5 +69,25 @@ with DAG('forex_data_pipeline', start_date=datetime(2024, 5, 1), schedule_interv
         bash_command = """
             hdfs dfs -mkdir -p /forex && \
             hdfs dfs -put -f $AIRFLOW_HOME/dags/files/forex_rates.json /forex
+        """
+    )
+
+    creating_forex_rates_table = HiveOperator(
+        task_id="creating_forex_rates_table",
+        hive_cli_conn_id="hive_conn",
+        hql="""
+            CREATE EXTERNAL TABLE IF NOT EXISTS forex_rates(
+                base STRING,
+                last_update DATE,
+                eur DOUBLE,
+                usd DOUBLE,
+                nzd DOUBLE,
+                gbp DOUBLE,
+                jpy DOUBLE,
+                cad DOUBLE
+                )
+            ROW FORMAT DELIMITED
+            FIELDS TERMINATED BY ','
+            STORED AS TEXTFILE
         """
     )
