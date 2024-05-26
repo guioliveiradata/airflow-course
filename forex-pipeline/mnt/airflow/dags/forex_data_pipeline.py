@@ -4,6 +4,8 @@ from airflow.sensors.filesystem import FileSensor  # type: ignore
 from airflow.operators.python import PythonOperator # type: ignore
 from airflow.operators.bash import BashOperator # type: ignore
 from airflow.providers.apache.hive.operators.hive import HiveOperator # type: ignore
+from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator # type: ignore
+from airflow.operators.email import EmailOperator # type: ignore
 
 from datetime import datetime, timedelta
 
@@ -73,9 +75,9 @@ with DAG('forex_data_pipeline', start_date=datetime(2024, 5, 1), schedule_interv
     )
 
     creating_forex_rates_table = HiveOperator(
-        task_id="creating_forex_rates_table",
-        hive_cli_conn_id="hive_conn",
-        hql="""
+        task_id = "creating_forex_rates_table",
+        hive_cli_conn_id = "hive_conn",
+        hql = """
             CREATE EXTERNAL TABLE IF NOT EXISTS forex_rates(
                 base STRING,
                 last_update DATE,
@@ -91,3 +93,12 @@ with DAG('forex_data_pipeline', start_date=datetime(2024, 5, 1), schedule_interv
             STORED AS TEXTFILE
         """
     )
+
+    forex_processing = SparkSubmitOperator(
+        task_id = 'forex_processing',
+        application = '/opt/airflow/dags/scripts/forex_processing.py',
+        conn_id = 'spark_conn',
+        verbose = False
+    )
+
+
