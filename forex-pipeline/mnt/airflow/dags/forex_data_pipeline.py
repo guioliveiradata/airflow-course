@@ -101,4 +101,9 @@ with DAG('forex_data_pipeline', start_date=datetime(2024, 5, 1), schedule_interv
         verbose = False
     )
 
-
+    send_email_notification = EmailOperator(
+        task_id = 'send_email_notification',
+        to = 'airflow_course@yopmail.com',
+        subject = 'forex_data_pipeline',
+        html_content = '<h3>forex_data_pipeline</h3>'
+    )
