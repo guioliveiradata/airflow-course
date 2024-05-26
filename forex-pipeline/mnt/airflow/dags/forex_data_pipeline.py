@@ -60,6 +60,4 @@ with DAG('forex_data_pipeline', start_date=datetime(2024, 5, 1), schedule_interv
     download_forex_rates = PythonOperator(
         task_id = 'download_forex_rates',
         python_callable = download_rates,
-        poke_interval = 5,
-        timeout = 20
     )
