@@ -2,6 +2,7 @@ from airflow import DAG
 from airflow.providers.http.sensors.http import HttpSensor # type: ignore
 from airflow.sensors.filesystem import FileSensor  # type: ignore
 from airflow.operators.python import PythonOperator # type: ignore
+from airflow.operators.bash import BashOperator # type: ignore
 
 from datetime import datetime, timedelta
 
@@ -60,4 +61,12 @@ with DAG('forex_data_pipeline', start_date=datetime(2024, 5, 1), schedule_interv
     download_forex_rates = PythonOperator(
         task_id = 'download_forex_rates',
         python_callable = download_rates,
+    )
+
+    saving_rates = BashOperator(
+        task_id = 'saving_rates',
+        bash_command = """
+            hdfs dfs -mkdir -p /forex && \
+            hdfs dfs -put -f $AIRFLOW_HOME/dags/files/forex_rates.json /forex
+        """
     )
