@@ -107,3 +107,6 @@ with DAG('forex_data_pipeline', start_date=datetime(2024, 5, 1), schedule_interv
         subject = 'forex_data_pipeline',
         html_content = '<h3>forex_data_pipeline</h3>'
     )
+
+    is_forex_ratex_available >> is_forex_currencies_file_available >> download_forex_rates
+    download_forex_rates >> saving_rates >> creating_forex_rates_table >> forex_processing >> send_email_notification
